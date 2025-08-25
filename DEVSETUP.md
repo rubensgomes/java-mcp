@@ -1,4 +1,4 @@
-# Setup
+# Development Environment Setup
 
 This page contains information to setup your development environment.
 
@@ -12,6 +12,7 @@ pipx ensurepath
 pipx install pylint
 pipx install pytest
 pipx install poetry
+pipx install python-semantic-release
 ```
 
 ## Add `poetry` dependencies
@@ -57,15 +58,17 @@ poetry shell
    cd $(git rev-parse --show-toplevel) || exit
    poetry run pylint "${PACKAGE}" || {
      printf "failed pylint.\n" >&2
-     sleep 60
+     sleep 120
      exit 1
    }
+
    # run pytest with coverage
    poetry run python -m coverage run -m pytest tests/ || {
      printf "failed unit testing.\n" >&2
      sleep 10
      exit 1
    }
+
    # generate coverage report
    poetry run python -m coverage report -m
    ```
@@ -73,7 +76,7 @@ poetry shell
 ## Clean shell environment
 
 - To complete clean any files and folders from this project untracked by git,
-  including venv (virtual enviroments) run:
+  including venv (virtual enviroment) run:
 
     ```shell
     git clean -fXd
@@ -87,6 +90,37 @@ poetry shell
     cd $(git rev-parse --show-toplevel) || exit
     rm -fr .venv/
     ```
+
+## Release process
+
+### GH_TOKEN environment variable
+
+A GH_TOKEN environment variable is required to create releases on GitHub.
+
+### Git commit messages
+
+Due to the project release process, the `git commit` messages should follow the
+below conventional commits format for commit messages:
+
+- feat: Add new feature
+- fix: Fix a bug
+- chore: Update dependencies
+
+```shell
+git commit -m "feat: add new feature" -a
+git push
+```
+
+```shell
+git commit -m "fix: fixed bug" -a
+git push
+```
+
+```shell
+git commit -m "chore: update dependencies" -a
+git push
+```
+
 
 ## Running the main program
 
