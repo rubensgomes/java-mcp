@@ -137,7 +137,6 @@ git push origin v0.1.0
 gh release create v0.1.0 --title "v0.1.0" --notes "Initial release"
 ```
 
-
 ```shell
 # Ensure at the top of the project root folder
 # NOTE: this assumes you have cloned this project from a Git repo
