@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "java-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "An AI MCP server to expose Java APIs/documentations to AI coding assistants."
 readme = "README.md"
 license = "Apache-2.0"
@@ -47,15 +47,5 @@ pytest-mock = "^3.14.1"
 python-semantic-release = "^10.3.1"
 
 [tool.semantic_release]
-version_source = "tag"  # Use Git tags for versioning
-  # Update version in your code
-version_variable = "java_mcp/__init__.py:__version__"
-version_pattern = "v{version}"
-upload_to_pypi = false  # Set to true if publishing to PyPI
-major_on_zero = false
-allow_zero_version = true
+version_toml = ["pyproject.toml:project.version"]
 build_command = "poetry build"
-commit_message = "chore(release): {version}"
-commit_version_number = true
-changelog_file = "CHANGELOG.md"
-changelog_template_dir= "."
