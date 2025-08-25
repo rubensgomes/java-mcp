@@ -117,7 +117,7 @@ git push
 ```
 
 ```shell
-git commit -m "chore: add / update dependencies" -a
+git commit -m "chore: setting up release" -a
 git push
 ```
 
@@ -126,8 +126,14 @@ git commit -m "docs: update documentation" -a
 git push
 ```
 
-
 ### Running the release
+
+- Create an initial git tag:
+
+```shell
+git tag v0.1.0
+git push origin v0.1.0
+```
 
 ```shell
 # Ensure at the top of the project root folder
