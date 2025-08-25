@@ -72,6 +72,30 @@ class TestParameter:
         assert param1 == param2
         assert param1 != param3
 
+    def test_varargs_parameter(self):
+        """Test Parameter representing varargs (variable arguments)."""
+        param = Parameter(
+            name="values",
+            type="String...",
+            annotations=[]
+        )
+
+        assert param.name == "values"
+        assert param.type == "String..."
+        assert param.annotations == []
+
+    def test_primitive_types(self):
+        """Test Parameter with various primitive types."""
+        primitive_types = ["int", "long", "double", "float", "boolean", "char", "byte", "short"]
+
+        for ptype in primitive_types:
+            param = Parameter(
+                name=f"test_{ptype}",
+                type=ptype,
+                annotations=[]
+            )
+            assert param.type == ptype
+
 
 class TestMethod:
     """Test cases for the Method dataclass."""
@@ -100,63 +124,51 @@ class TestMethod:
 
     def test_initialization_with_parameters(self):
         """Test Method initialization with parameters."""
-        param1 = Parameter("id", "Long", ["@NotNull"])
-        param2 = Parameter("name", "String", [])
+        param1 = Parameter("name", "String", ["@NotNull"])
+        param2 = Parameter("age", "int", [])
 
         method = Method(
-            name="findUser",
-            return_type="Optional<User>",
+            name="createUser",
+            return_type="User",
             parameters=[param1, param2],
-            modifiers=["public"],
-            annotations=["@Transactional"],
-            javadoc="Finds a user by ID and name.",
+            modifiers=["public", "static"],
+            annotations=["@Override"],
+            javadoc="Creates a new user instance.",
             line_number=25
         )
 
-        assert method.name == "findUser"
-        assert method.return_type == "Optional<User>"
+        assert method.name == "createUser"
+        assert method.return_type == "User"
         assert len(method.parameters) == 2
-        assert method.parameters[0].name == "id"
-        assert method.parameters[1].name == "name"
-        assert method.annotations == ["@Transactional"]
-        assert method.javadoc == "Finds a user by ID and name."
+        assert method.parameters[0] == param1
+        assert method.parameters[1] == param2
+        assert method.modifiers == ["public", "static"]
+        assert method.annotations == ["@Override"]
+        assert method.javadoc == "Creates a new user instance."
+        assert method.line_number == 25
 
-    def test_constructor_method(self):
+    def test_constructor_initialization(self):
         """Test Method representing a constructor."""
         param = Parameter("name", "String", [])
 
         constructor = Method(
             name="User",
-            return_type="void",
+            return_type="User",
             parameters=[param],
             modifiers=["public"],
             annotations=[],
-            javadoc="Creates a new User instance.",
+            javadoc="Default constructor.",
             line_number=15,
             is_constructor=True
         )
 
-        assert constructor.is_constructor is True
         assert constructor.name == "User"
-        assert constructor.return_type == "void"
+        assert constructor.return_type == "User"
+        assert constructor.is_constructor is True
+        assert len(constructor.parameters) == 1
 
-    def test_method_with_exceptions(self):
-        """Test Method with throws_exceptions."""
-        method = Method(
-            name="saveUser",
-            return_type="void",
-            parameters=[Parameter("user", "User", [])],
-            modifiers=["public"],
-            annotations=[],
-            javadoc=None,
-            line_number=30,
-            throws_exceptions=["IOException", "ValidationException"]
-        )
-
-        assert method.throws_exceptions == ["IOException", "ValidationException"]
-
-    def test_post_init_initializes_exceptions(self):
-        """Test that __post_init__ initializes throws_exceptions to empty list."""
+    def test_post_init_throws_exceptions_none(self):
+        """Test that __post_init__ initializes throws_exceptions when None."""
         method = Method(
             name="test",
             return_type="void",
@@ -164,27 +176,90 @@ class TestMethod:
             modifiers=["public"],
             annotations=[],
             javadoc=None,
-            line_number=1
+            line_number=10,
+            throws_exceptions=None
         )
 
-        # Should be initialized to empty list by __post_init__
         assert method.throws_exceptions == []
-        assert isinstance(method.throws_exceptions, list)
 
-    def test_static_method(self):
-        """Test Method representing a static method."""
+    def test_post_init_throws_exceptions_provided(self):
+        """Test that __post_init__ preserves provided throws_exceptions."""
+        exceptions = ["IOException", "SQLException"]
         method = Method(
-            name="getInstance",
-            return_type="Singleton",
+            name="test",
+            return_type="void",
             parameters=[],
-            modifiers=["public", "static"],
+            modifiers=["public"],
             annotations=[],
-            javadoc="Returns the singleton instance.",
-            line_number=45
+            javadoc=None,
+            line_number=10,
+            throws_exceptions=exceptions
         )
 
-        assert "static" in method.modifiers
-        assert "public" in method.modifiers
+        assert method.throws_exceptions == exceptions
+
+    def test_void_return_type(self):
+        """Test Method with void return type."""
+        method = Method(
+            name="doSomething",
+            return_type="void",
+            parameters=[],
+            modifiers=["public"],
+            annotations=[],
+            javadoc=None,
+            line_number=30
+        )
+
+        assert method.return_type == "void"
+
+    def test_generic_return_type(self):
+        """Test Method with generic return type."""
+        method = Method(
+            name="getList",
+            return_type="List<String>",
+            parameters=[],
+            modifiers=["public"],
+            annotations=[],
+            javadoc=None,
+            line_number=40
+        )
+
+        assert method.return_type == "List<String>"
+
+    def test_multiple_annotations(self):
+        """Test Method with multiple annotations."""
+        method = Method(
+            name="processRequest",
+            return_type="ResponseEntity<String>",
+            parameters=[],
+            modifiers=["public"],
+            annotations=["@PostMapping", "@ResponseBody", "@Transactional"],
+            javadoc=None,
+            line_number=50
+        )
+
+        assert len(method.annotations) == 3
+        assert "@PostMapping" in method.annotations
+        assert "@ResponseBody" in method.annotations
+        assert "@Transactional" in method.annotations
+
+    def test_multiple_throws_exceptions(self):
+        """Test Method with multiple throws exceptions."""
+        method = Method(
+            name="complexOperation",
+            return_type="String",
+            parameters=[],
+            modifiers=["public"],
+            annotations=[],
+            javadoc=None,
+            line_number=60,
+            throws_exceptions=["IOException", "SQLException", "CustomException"]
+        )
+
+        assert len(method.throws_exceptions) == 3
+        assert "IOException" in method.throws_exceptions
+        assert "SQLException" in method.throws_exceptions
+        assert "CustomException" in method.throws_exceptions
 
 
 class TestField:
@@ -197,30 +272,32 @@ class TestField:
             type="String",
             modifiers=["private"],
             annotations=["@Column"],
-            javadoc="The user's name",
-            line_number=20
+            javadoc="The user's name.",
+            line_number=15
         )
 
         assert field.name == "userName"
         assert field.type == "String"
         assert field.modifiers == ["private"]
         assert field.annotations == ["@Column"]
-        assert field.javadoc == "The user's name"
-        assert field.line_number == 20
+        assert field.javadoc == "The user's name."
+        assert field.line_number == 15
         assert field.initial_value is None
 
-    def test_field_with_initial_value(self):
-        """Test Field with initial value."""
+    def test_initialization_with_initial_value(self):
+        """Test Field initialization with initial value."""
         field = Field(
             name="count",
             type="int",
             modifiers=["private"],
             annotations=[],
             javadoc=None,
-            line_number=25,
+            line_number=20,
             initial_value="0"
         )
 
+        assert field.name == "count"
+        assert field.type == "int"
         assert field.initial_value == "0"
 
     def test_static_final_field(self):
@@ -230,45 +307,78 @@ class TestField:
             type="int",
             modifiers=["public", "static", "final"],
             annotations=[],
-            javadoc="Maximum allowed size",
+            javadoc="Maximum allowed size.",
             line_number=10,
             initial_value="100"
         )
 
+        assert field.name == "MAX_SIZE"
+        assert field.type == "int"
+        assert "public" in field.modifiers
         assert "static" in field.modifiers
         assert "final" in field.modifiers
-        assert "public" in field.modifiers
         assert field.initial_value == "100"
 
-    def test_field_with_complex_type(self):
+    def test_complex_type_field(self):
         """Test Field with complex generic type."""
         field = Field(
-            name="userCache",
+            name="userMap",
             type="Map<String, List<User>>",
             modifiers=["private"],
-            annotations=["@Autowired"],
+            annotations=["@JsonIgnore"],
             javadoc=None,
-            line_number=30,
+            line_number=25,
             initial_value="new HashMap<>()"
         )
 
         assert field.type == "Map<String, List<User>>"
         assert field.initial_value == "new HashMap<>()"
 
-    def test_field_with_multiple_annotations(self):
+    def test_multiple_annotations(self):
         """Test Field with multiple annotations."""
         field = Field(
-            name="users",
-            type="List<User>",
+            name="id",
+            type="Long",
             modifiers=["private"],
-            annotations=["@OneToMany", "@JoinColumn(name=\"user_id\")", "@Cascade(CascadeType.ALL)"],
-            javadoc="Associated users",
-            line_number=35
+            annotations=["@Id", "@GeneratedValue", "@Column(name=\"user_id\")"],
+            javadoc="Primary key.",
+            line_number=12
         )
 
         assert len(field.annotations) == 3
-        assert "@OneToMany" in field.annotations
-        assert "@JoinColumn(name=\"user_id\")" in field.annotations
+        assert "@Id" in field.annotations
+        assert "@GeneratedValue" in field.annotations
+        assert "@Column(name=\"user_id\")" in field.annotations
+
+    def test_array_type_field(self):
+        """Test Field with array type."""
+        field = Field(
+            name="values",
+            type="String[]",
+            modifiers=["private"],
+            annotations=[],
+            javadoc=None,
+            line_number=30,
+            initial_value="new String[10]"
+        )
+
+        assert field.type == "String[]"
+        assert field.initial_value == "new String[10]"
+
+    def test_primitive_field(self):
+        """Test Field with primitive type."""
+        field = Field(
+            name="active",
+            type="boolean",
+            modifiers=["private"],
+            annotations=[],
+            javadoc=None,
+            line_number=35,
+            initial_value="false"
+        )
+
+        assert field.type == "boolean"
+        assert field.initial_value == "false"
 
 
 class TestClass:
@@ -276,78 +386,115 @@ class TestClass:
 
     def test_basic_initialization(self):
         """Test basic Class initialization with required fields."""
-        java_class = Class(
+        cls = Class(
             name="User",
             package="com.example.model",
             modifiers=["public"],
             annotations=["@Entity"],
-            javadoc="Represents a user",
+            javadoc="Represents a user entity.",
             line_number=10,
             methods=[],
             fields=[],
             inner_classes=[]
         )
 
-        assert java_class.name == "User"
-        assert java_class.package == "com.example.model"
-        assert java_class.modifiers == ["public"]
-        assert java_class.annotations == ["@Entity"]
-        assert java_class.javadoc == "Represents a user"
-        assert java_class.line_number == 10
-        assert java_class.methods == []
-        assert java_class.fields == []
-        assert java_class.inner_classes == []
-        assert java_class.extends is None
-        assert java_class.implements == []  # Should be initialized by __post_init__
-        assert java_class.class_type == "class"
+        assert cls.name == "User"
+        assert cls.package == "com.example.model"
+        assert cls.modifiers == ["public"]
+        assert cls.annotations == ["@Entity"]
+        assert cls.javadoc == "Represents a user entity."
+        assert cls.line_number == 10
+        assert cls.methods == []
+        assert cls.fields == []
+        assert cls.inner_classes == []
+        assert cls.extends is None
+        assert cls.implements == []  # Should be initialized by __post_init__
+        assert cls.class_type == "class"
 
-    def test_post_init_initializes_lists(self):
-        """Test that __post_init__ initializes None list attributes."""
-        java_class = Class(
-            name="Test",
-            package="com.test",
+    def test_initialization_with_inheritance(self):
+        """Test Class initialization with inheritance."""
+        cls = Class(
+            name="AdminUser",
+            package="com.example.model",
             modifiers=["public"],
             annotations=[],
             javadoc=None,
-            line_number=1,
-            methods=[],
-            fields=[],
-            inner_classes=[]
-            # implements and inner_classes not provided, should be initialized by __post_init__
-        )
-
-        assert java_class.implements == []
-        assert java_class.inner_classes == []
-        assert isinstance(java_class.implements, list)
-        assert isinstance(java_class.inner_classes, list)
-
-    def test_class_with_inheritance(self):
-        """Test Class with inheritance and interfaces."""
-        java_class = Class(
-            name="Employee",
-            package="com.example.model",
-            modifiers=["public"],
-            annotations=["@Entity"],
-            javadoc="Employee entity",
-            line_number=15,
+            line_number=20,
             methods=[],
             fields=[],
             inner_classes=[],
-            extends="Person",
-            implements=["Serializable", "Comparable<Employee>"]
+            extends="User",
+            implements=["Serializable", "Comparable<AdminUser>"]
         )
 
-        assert java_class.extends == "Person"
-        assert java_class.implements == ["Serializable", "Comparable<Employee>"]
+        assert cls.extends == "User"
+        assert len(cls.implements) == 2
+        assert "Serializable" in cls.implements
+        assert "Comparable<AdminUser>" in cls.implements
 
-    def test_interface_class(self):
-        """Test Class representing an interface."""
-        interface = Class(
-            name="Drawable",
-            package="com.example.graphics",
+    def test_post_init_implements_none(self):
+        """Test that __post_init__ initializes implements when None."""
+        cls = Class(
+            name="Test",
+            package="com.example",
             modifiers=["public"],
             annotations=[],
-            javadoc="Drawable interface",
+            javadoc=None,
+            line_number=10,
+            methods=[],
+            fields=[],
+            inner_classes=[],
+            implements=None
+        )
+
+        assert cls.implements == []
+
+    def test_post_init_inner_classes_none(self):
+        """Test that __post_init__ initializes inner_classes when None."""
+        cls = Class(
+            name="Test",
+            package="com.example",
+            modifiers=["public"],
+            annotations=[],
+            javadoc=None,
+            line_number=10,
+            methods=[],
+            fields=[],
+            inner_classes=None
+        )
+
+        assert cls.inner_classes == []
+
+    def test_class_with_methods_and_fields(self):
+        """Test Class with methods and fields."""
+        field = Field("name", "String", ["private"], [], None, 15)
+        method = Method("getName", "String", [], ["public"], [], None, 20)
+
+        cls = Class(
+            name="Person",
+            package="com.example",
+            modifiers=["public"],
+            annotations=[],
+            javadoc=None,
+            line_number=10,
+            methods=[method],
+            fields=[field],
+            inner_classes=[]
+        )
+
+        assert len(cls.methods) == 1
+        assert len(cls.fields) == 1
+        assert cls.methods[0] == method
+        assert cls.fields[0] == field
+
+    def test_interface_class_type(self):
+        """Test Class representing an interface."""
+        cls = Class(
+            name="UserRepository",
+            package="com.example.repository",
+            modifiers=["public"],
+            annotations=[],
+            javadoc=None,
             line_number=5,
             methods=[],
             fields=[],
@@ -355,93 +502,159 @@ class TestClass:
             class_type="interface"
         )
 
-        assert interface.class_type == "interface"
+        assert cls.class_type == "interface"
 
-    def test_enum_class(self):
+    def test_enum_class_type(self):
         """Test Class representing an enum."""
-        enum_class = Class(
+        cls = Class(
             name="Status",
-            package="com.example.types",
+            package="com.example.enums",
             modifiers=["public"],
             annotations=[],
-            javadoc="Status enumeration",
+            javadoc=None,
             line_number=8,
             methods=[],
             fields=[],
             inner_classes=[],
-            extends="Enum<Status>",
             class_type="enum"
         )
 
-        assert enum_class.class_type == "enum"
-        assert enum_class.extends == "Enum<Status>"
+        assert cls.class_type == "enum"
 
-    def test_record_class(self):
+    def test_record_class_type(self):
         """Test Class representing a record."""
-        record_class = Class(
-            name="Point",
-            package="com.example.geometry",
+        cls = Class(
+            name="UserDto",
+            package="com.example.dto",
             modifiers=["public"],
             annotations=[],
-            javadoc="Point record",
-            line_number=3,
+            javadoc=None,
+            line_number=12,
             methods=[],
             fields=[],
             inner_classes=[],
             class_type="record"
         )
 
-        assert record_class.class_type == "record"
+        assert cls.class_type == "record"
+
+    def test_nested_inner_classes(self):
+        """Test Class with nested inner classes."""
+        inner_class = Class(
+            name="Builder",
+            package="com.example",
+            modifiers=["public", "static"],
+            annotations=[],
+            javadoc=None,
+            line_number=30,
+            methods=[],
+            fields=[],
+            inner_classes=[]
+        )
+
+        outer_class = Class(
+            name="User",
+            package="com.example",
+            modifiers=["public"],
+            annotations=[],
+            javadoc=None,
+            line_number=10,
+            methods=[],
+            fields=[],
+            inner_classes=[inner_class]
+        )
+
+        assert len(outer_class.inner_classes) == 1
+        assert outer_class.inner_classes[0] == inner_class
+
+    def test_multiple_annotations(self):
+        """Test Class with multiple annotations."""
+        cls = Class(
+            name="User",
+            package="com.example.model",
+            modifiers=["public"],
+            annotations=["@Entity", "@Table(name=\"users\")", "@JsonIgnoreProperties"],
+            javadoc=None,
+            line_number=15,
+            methods=[],
+            fields=[],
+            inner_classes=[]
+        )
+
+        assert len(cls.annotations) == 3
+        assert "@Entity" in cls.annotations
+        assert "@Table(name=\"users\")" in cls.annotations
+        assert "@JsonIgnoreProperties" in cls.annotations
+
+    def test_abstract_class(self):
+        """Test Class representing an abstract class."""
+        cls = Class(
+            name="AbstractEntity",
+            package="com.example.model",
+            modifiers=["public", "abstract"],
+            annotations=[],
+            javadoc=None,
+            line_number=5,
+            methods=[],
+            fields=[],
+            inner_classes=[]
+        )
+
+        assert "public" in cls.modifiers
+        assert "abstract" in cls.modifiers
+
+    def test_final_class(self):
+        """Test Class representing a final class."""
+        cls = Class(
+            name="ImmutableUser",
+            package="com.example.model",
+            modifiers=["public", "final"],
+            annotations=[],
+            javadoc=None,
+            line_number=5,
+            methods=[],
+            fields=[],
+            inner_classes=[]
+        )
+
+        assert "public" in cls.modifiers
+        assert "final" in cls.modifiers
+
+    def test_complex_inheritance_scenario(self):
+        """Test Class with complex inheritance scenario."""
+        cls = Class(
+            name="UserService",
+            package="com.example.service",
+            modifiers=["public"],
+            annotations=["@Service", "@Transactional"],
+            javadoc="Service for user operations.",
+            line_number=25,
+            methods=[],
+            fields=[],
+            inner_classes=[],
+            extends="AbstractService<User>",
+            implements=["UserOperations", "Auditable", "Cacheable<String>"]
+        )
+
+        assert cls.extends == "AbstractService<User>"
+        assert len(cls.implements) == 3
+        assert "UserOperations" in cls.implements
+        assert "Auditable" in cls.implements
+        assert "Cacheable<String>" in cls.implements
 
 
 class TestIntegrationScenarios:
-    """Integration test scenarios combining multiple types."""
+    """Test cases for integration scenarios between types."""
 
-    def test_complete_class_structure(self):
-        """Test a complete class with methods, fields, and inner classes."""
-        # Create parameters
-        id_param = Parameter("id", "Long", ["@NotNull"])
-        name_param = Parameter("name", "String", ["@NotBlank"])
-
-        # Create methods
-        constructor = Method(
-            name="User",
-            return_type="void",
-            parameters=[id_param, name_param],
-            modifiers=["public"],
-            annotations=[],
-            javadoc="Creates a new User",
-            line_number=20,
-            is_constructor=True
-        )
-
-        getter = Method(
-            name="getName",
-            return_type="String",
-            parameters=[],
-            modifiers=["public"],
-            annotations=[],
-            javadoc="Returns the name",
-            line_number=30
-        )
-
-        setter = Method(
-            name="setName",
-            return_type="void",
-            parameters=[name_param],
-            modifiers=["public"],
-            annotations=[],
-            javadoc="Sets the name",
-            line_number=35
-        )
-
-        # Create fields
+    def test_complete_class_with_all_components(self):
+        """Test a complete Class with methods, fields, and inner classes."""
+        # Create field
         id_field = Field(
             name="id",
             type="Long",
             modifiers=["private"],
             annotations=["@Id", "@GeneratedValue"],
-            javadoc="User ID",
+            javadoc="Primary key.",
             line_number=15
         )
 
@@ -450,172 +663,157 @@ class TestIntegrationScenarios:
             type="String",
             modifiers=["private"],
             annotations=["@Column(nullable=false)"],
-            javadoc="User name",
-            line_number=18
+            javadoc="User name.",
+            line_number=20
+        )
+
+        # Create methods
+        constructor = Method(
+            name="User",
+            return_type="User",
+            parameters=[Parameter("name", "String", ["@NotNull"])],
+            modifiers=["public"],
+            annotations=[],
+            javadoc="Constructor with name.",
+            line_number=25,
+            is_constructor=True
+        )
+
+        getter = Method(
+            name="getName",
+            return_type="String",
+            parameters=[],
+            modifiers=["public"],
+            annotations=["@Override"],
+            javadoc="Gets the user name.",
+            line_number=30
         )
 
         # Create inner class
-        inner_class = Class(
+        builder = Class(
             name="Builder",
             package="com.example.model",
             modifiers=["public", "static"],
             annotations=[],
-            javadoc="Builder for User",
+            javadoc="Builder pattern implementation.",
             line_number=40,
             methods=[],
             fields=[],
             inner_classes=[]
         )
 
-        # Create complete class
+        # Create main class
         user_class = Class(
             name="User",
             package="com.example.model",
             modifiers=["public"],
             annotations=["@Entity", "@Table(name=\"users\")"],
-            javadoc="User entity representing a system user",
+            javadoc="Represents a user entity in the system.",
             line_number=10,
-            methods=[constructor, getter, setter],
+            methods=[constructor, getter],
             fields=[id_field, name_field],
-            inner_classes=[inner_class],
+            inner_classes=[builder],
+            extends="AbstractEntity",
             implements=["Serializable"]
         )
 
-        # Verify the complete structure
+        # Verify complete structure
         assert user_class.name == "User"
-        assert len(user_class.methods) == 3
         assert len(user_class.fields) == 2
+        assert len(user_class.methods) == 2
         assert len(user_class.inner_classes) == 1
-        assert len(user_class.annotations) == 2
-        assert len(user_class.implements) == 1
-
-        # Verify method details
-        assert user_class.methods[0].is_constructor is True
-        assert user_class.methods[1].name == "getName"
-        assert user_class.methods[2].name == "setName"
+        assert user_class.extends == "AbstractEntity"
+        assert "Serializable" in user_class.implements
 
         # Verify field details
         assert user_class.fields[0].name == "id"
         assert user_class.fields[1].name == "name"
 
+        # Verify method details
+        assert any(m.is_constructor for m in user_class.methods)
+        assert any(m.name == "getName" for m in user_class.methods)
+
         # Verify inner class
         assert user_class.inner_classes[0].name == "Builder"
-        assert "static" in user_class.inner_classes[0].modifiers
 
-    def test_inheritance_hierarchy(self):
-        """Test representing a class inheritance hierarchy."""
-        # Base abstract class
-        base_class = Class(
-            name="Vehicle",
-            package="com.example.transport",
-            modifiers=["public", "abstract"],
+    def test_method_with_complex_parameters(self):
+        """Test Method with complex parameter scenarios."""
+        param1 = Parameter("users", "List<User>", ["@NotNull", "@Valid"])
+        param2 = Parameter("options", "Map<String, Object>", ["@RequestParam"])
+        param3 = Parameter("callback", "Function<User, String>", [])
+        param4 = Parameter("values", "String...", [])  # Varargs
+
+        method = Method(
+            name="processUsers",
+            return_type="CompletableFuture<List<String>>",
+            parameters=[param1, param2, param3, param4],
+            modifiers=["public", "async"],
+            annotations=["@PostMapping", "@ResponseBody"],
+            javadoc="Processes users asynchronously.",
+            line_number=45,
+            throws_exceptions=["ProcessingException", "ValidationException"]
+        )
+
+        assert len(method.parameters) == 4
+        assert method.parameters[0].type == "List<User>"
+        assert method.parameters[3].type == "String..."  # Varargs
+        assert method.return_type == "CompletableFuture<List<String>>"
+        assert len(method.throws_exceptions) == 2
+
+    def test_deeply_nested_classes(self):
+        """Test deeply nested class structures."""
+        innermost = Class(
+            name="Config",
+            package="com.example",
+            modifiers=["private", "static"],
             annotations=[],
-            javadoc="Base vehicle class",
-            line_number=5,
-            methods=[
-                Method(
-                    name="start",
-                    return_type="void",
-                    parameters=[],
-                    modifiers=["public", "abstract"],
-                    annotations=[],
-                    javadoc="Start the vehicle",
-                    line_number=10
-                )
-            ],
-            fields=[
-                Field(
-                    name="model",
-                    type="String",
-                    modifiers=["protected"],
-                    annotations=[],
-                    javadoc="Vehicle model",
-                    line_number=8
-                )
-            ],
+            javadoc=None,
+            line_number=60,
+            methods=[],
+            fields=[],
             inner_classes=[]
         )
 
-        # Concrete implementation
-        car_class = Class(
-            name="Car",
-            package="com.example.transport",
-            modifiers=["public"],
-            annotations=["@Component"],
-            javadoc="Car implementation",
-            line_number=15,
-            methods=[
-                Method(
-                    name="start",
-                    return_type="void",
-                    parameters=[],
-                    modifiers=["public"],
-                    annotations=["@Override"],
-                    javadoc="Start the car",
-                    line_number=20
-                )
-            ],
+        middle = Class(
+            name="Builder",
+            package="com.example",
+            modifiers=["public", "static"],
+            annotations=[],
+            javadoc=None,
+            line_number=50,
+            methods=[],
             fields=[],
-            inner_classes=[],
-            extends="Vehicle",
-            implements=["Drivable"]
+            inner_classes=[innermost]
         )
 
-        assert base_class.extends is None
-        assert "abstract" in base_class.modifiers
-        assert car_class.extends == "Vehicle"
-        assert "Drivable" in car_class.implements
-        assert car_class.methods[0].annotations == ["@Override"]
-
-
-class TestDataclassFeatures:
-    """Test dataclass-specific features and edge cases."""
-
-    def test_string_representation(self):
-        """Test string representation of dataclass instances."""
-        param = Parameter("test", "String", [])
-        param_str = str(param)
-
-        assert "Parameter" in param_str
-        assert "test" in param_str
-        assert "String" in param_str
-
-    def test_field_modification(self):
-        """Test that dataclass fields can be modified after creation."""
-        method = Method(
-            name="test",
-            return_type="void",
-            parameters=[],
+        outer = Class(
+            name="ComplexClass",
+            package="com.example",
             modifiers=["public"],
             annotations=[],
             javadoc=None,
-            line_number=1
+            line_number=40,
+            methods=[],
+            fields=[],
+            inner_classes=[middle]
         )
 
-        # Initially empty due to __post_init__
-        assert len(method.throws_exceptions) == 0
+        assert len(outer.inner_classes) == 1
+        assert len(outer.inner_classes[0].inner_classes) == 1
+        assert outer.inner_classes[0].inner_classes[0].name == "Config"
 
-        # Add an exception
-        method.throws_exceptions.append("IOException")
+    def test_dataclass_equality(self):
+        """Test equality comparison between dataclass instances."""
+        param1 = Parameter("name", "String", ["@NotNull"])
+        param2 = Parameter("name", "String", ["@NotNull"])
+        param3 = Parameter("name", "String", [])
 
-        assert len(method.throws_exceptions) == 1
-        assert method.throws_exceptions[0] == "IOException"
+        assert param1 == param2
+        assert param1 != param3
 
-    def test_type_annotations(self):
-        """Test that type annotations are preserved."""
-        # Check that we can access type annotations
-        assert hasattr(Parameter, '__annotations__')
-        assert hasattr(Method, '__annotations__')
-        assert hasattr(Field, '__annotations__')
-        assert hasattr(Class, '__annotations__')
+        field1 = Field("id", "Long", ["private"], ["@Id"], None, 10)
+        field2 = Field("id", "Long", ["private"], ["@Id"], None, 10)
+        field3 = Field("id", "String", ["private"], ["@Id"], None, 10)
 
-        # Verify some key type annotations
-        assert Parameter.__annotations__['name'] == str
-        assert Parameter.__annotations__['type'] == str
-        assert Method.__annotations__['parameters'] == List[Parameter]
-        assert Class.__annotations__['methods'] == List[Method]
-        assert Class.__annotations__['fields'] == List[Field]
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])
+        assert field1 == field2
+        assert field1 != field3
