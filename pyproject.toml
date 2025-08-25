@@ -50,3 +50,4 @@ python-semantic-release = "^10.3.1"
 version_source = "tag"  # Use Git tags for versioning
 version_variable = "java_mcp/__init__.py:__version__"  # Update version in your code
 upload_to_pypi = true  # Set to true if publishing to PyPI
+changelog_file = "changelog_template.j2"

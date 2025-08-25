@@ -1,7 +1,7 @@
 # java-mcp
 
 This is MCP server provides AI coding assistant access to Java APIs and
-documentations fetched from its corresponding Git repository.  It basically
+documentations fetched from its corresponding Git repository. It basically
 fetches files from a given set of Git repositories and processes Java source
 code, extract API information, and serve it to coding assistants.
 
@@ -26,3 +26,14 @@ code, extract API information, and serve it to coding assistants.
 ## Workflow of the MCP server
 
 - Git Repos → MCP Server → Structured API Data → AI Assistant Context
+
+## Development Setup
+
+See the [DEVSETUP](DEVSETUP.md) for details on development environment setup.
+
+## Changelog
+
+See the [CHANGELOG](CHANGELOG.md) for details on version updates.
+
+---
+Author:  [Rubens Gomes](https://rubensgomes.com/)

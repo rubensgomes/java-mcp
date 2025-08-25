@@ -121,6 +121,12 @@ git commit -m "chore: add / update dependencies" -a
 git push
 ```
 
+```shell
+git commit -m "docs: update documentation" -a
+git push
+```
+
+
 ### Running the release
 
 ```shell

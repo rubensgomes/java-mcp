@@ -1,0 +1,10 @@
+# Changelog
+
+{% for version, commits in versions.items() %}
+## {{ version }}
+
+{% for commit in commits %}
+- {{ commit.type }}: {{ commit.description }} ({{ commit.hash }})
+{% endfor %}
+
+Rubens Gomes - rubens.s.gomes@gmail.com
