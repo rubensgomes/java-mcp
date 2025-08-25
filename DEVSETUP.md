@@ -142,6 +142,8 @@ gh release create v0.1.0 --title "v0.1.0" --notes "Initial release"
 # Ensure at the top of the project root folder
 # NOTE: this assumes you have cloned this project from a Git repo
 cd $(git rev-parse --show-toplevel) || exit
+poetry build
+poetry run python -m semantic_release -vvv version
 poetry run python -m semantic_release -vvv publish
 ```
 
