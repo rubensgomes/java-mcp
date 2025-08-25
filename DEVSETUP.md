@@ -117,10 +117,18 @@ git push
 ```
 
 ```shell
-git commit -m "chore: update dependencies" -a
+git commit -m "chore: add / update dependencies" -a
 git push
 ```
 
+### Running the release
+
+```shell
+# Ensure at the top of the project root folder
+# NOTE: this assumes you have cloned this project from a Git repo
+cd $(git rev-parse --show-toplevel) || exit
+poetry run python -m semantic_release publish
+```
 
 ## Running the main program
 
