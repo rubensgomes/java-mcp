@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 
+
 def _find_java_files(self, repo_path: Path) -> List[Path]:
     """Find all Java source files in the repository."""
     java_files = []
