@@ -22,6 +22,7 @@ code, extract API information, and serve it to coding assistants.
 
 - [FastMCP](https://gofastmcp.com/getting-started/welcome)
 - [GitPython](https://gitpython.readthedocs.io/en/stable/)
+- [ANTLR4](https://www.antlr.org/)
 
 ## Workflow of the MCP server
 

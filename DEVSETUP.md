@@ -8,6 +8,7 @@ This page contains information to setup your development environment.
 # macOS commands.
 brew install python3
 brew install pipx
+brew install antlr
 pipx ensurepath
 pipx install pylint
 pipx install pytest
