@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "java-mcp"
-version = "0.0.1"
+version = "0.1.0"
 description = "An AI MCP server to expose Java APIs/documentations to AI coding assistants."
 readme = "README.md"
 license = "Apache-2.0"
@@ -53,4 +53,5 @@ upload_to_pypi = true  # Set to true if publishing to PyPI
 version_pattern = "v{version}"
 major_on_zero = false
 allow_zero_version = true
-changelog_file = "changelog_template.j2"
+changelog_file = "CHANGELOG.md"
+changelog_template_dir= "."
