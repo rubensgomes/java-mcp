@@ -133,7 +133,10 @@ git push
 ```shell
 git tag v0.1.0
 git push origin v0.1.0
+# Create a release for the existing tag
+gh release create v0.1.0 --title "v0.1.0" --notes "Initial release"
 ```
+
 
 ```shell
 # Ensure at the top of the project root folder
