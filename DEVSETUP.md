@@ -102,9 +102,10 @@ A GH_TOKEN environment variable is required to create releases on GitHub.
 Due to the project release process, the `git commit` messages should follow the
 below conventional commits format for commit messages:
 
-- feat: Add new feature
-- fix: Fix a bug
 - chore: Update dependencies
+- fix: commits → patch version bump (0.1.0 → 0.1.1)
+- feat: commits → minor version bump (0.1.0 → 0.2.0)
+- BREAKING CHANGE: → major version bump (0.1.0 → 1.0.0)
 
 ```shell
 git commit -m "feat: add new feature" -a
