@@ -413,7 +413,7 @@ def update(folder_path: str, repository_url: str) -> Repo:
     return repo
 
 
-def clone_or_update(folder_path: str, repository_url: str) -> Repo:
+def clone_or_update(folder_path: str, repository_url: str, depth: int = 1) -> Repo:
     """
     Clone a git repository or update it if it already exists at the specified folder path.
 
@@ -496,7 +496,7 @@ def clone_or_update(folder_path: str, repository_url: str) -> Repo:
         target_path = Path(folder_path)
         # Clone repository using GitPython with shallow clone (depth 1)
         logger.info("Cloning repository %s to %s...", repository_url, target_path)
-        repo = Repo.clone_from(repository_url, target_path, depth=1)
+        repo = Repo.clone_from(repository_url, target_path, depth=depth)
         logger.info("Successfully cloned repository to %s", target_path)
 
     return repo

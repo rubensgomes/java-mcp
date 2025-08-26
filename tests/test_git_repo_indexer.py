@@ -38,14 +38,14 @@ class TestGitRepoIndexerInit:
         # Verify attributes
         assert indexer.repo_urls == repo_urls
         assert indexer.folder_path == folder_path
-        assert len(indexer.repos) == 1
-        assert indexer.repos[0] == mock_repo
+        assert len(indexer.local_repos) == 1
+        assert indexer.local_repos[0] == mock_repo
 
         # Verify method calls
         mock_valid_url.assert_called_once_with("https://github.com/user/repo.git")
         mock_ping.assert_called_once_with("https://github.com/user/repo.git")
         mock_create.assert_called_once_with(folder_path)
-        mock_clone.assert_called_once_with(folder_path, "https://github.com/user/repo.git")
+        mock_clone.assert_called_once_with(folder_path, "https://github.com/user/repo.git", 1)
 
     @patch('java_mcp.git.git_repo_indexer.create_folder')
     @patch('java_mcp.git.git_repo_indexer.is_valid_git_url')
@@ -75,16 +75,16 @@ class TestGitRepoIndexerInit:
         # Verify attributes
         assert indexer.repo_urls == repo_urls
         assert indexer.folder_path == folder_path
-        assert len(indexer.repos) == 3
-        assert indexer.repos == [mock_repo1, mock_repo2, mock_repo3]
+        assert len(indexer.local_repos) == 3
+        assert indexer.local_repos == [mock_repo1, mock_repo2, mock_repo3]
 
         # Verify validation calls
         expected_url_calls = [call(url) for url in repo_urls]
         mock_valid_url.assert_has_calls(expected_url_calls)
         mock_ping.assert_has_calls(expected_url_calls)
 
-        # Verify clone calls
-        expected_clone_calls = [call(folder_path, url) for url in repo_urls]
+        # Verify clone calls - now include depth parameter
+        expected_clone_calls = [call(folder_path, url, 1) for url in repo_urls]
         mock_clone.assert_has_calls(expected_clone_calls)
 
         # Verify folder creation called once
@@ -182,7 +182,7 @@ class TestGitRepoIndexerInit:
 
             assert indexer.repo_urls == []
             assert indexer.folder_path == folder_path
-            assert indexer.repos == []
+            assert indexer.local_repos == []
             mock_create.assert_called_once_with(folder_path)
 
     @patch('java_mcp.git.git_repo_indexer.create_folder')
@@ -204,8 +204,8 @@ class TestGitRepoIndexerInit:
         indexer = GitRepoIndexer(repo_urls, folder_path)
 
         # Verify order is maintained by checking the exact mock objects
-        assert indexer.repos == mock_repos
-        assert len(indexer.repos) == 5
+        assert indexer.local_repos == mock_repos
+        assert len(indexer.local_repos) == 5
 
     @patch('java_mcp.git.git_repo_indexer.create_folder')
     @patch('java_mcp.git.git_repo_indexer.is_valid_git_url')
@@ -228,7 +228,7 @@ class TestGitRepoIndexerInit:
 
         indexer = GitRepoIndexer(repo_urls, folder_path)
 
-        assert len(indexer.repos) == 4
+        assert len(indexer.local_repos) == 4
         # Verify all URL formats were processed
         expected_calls = [call(url) for url in repo_urls]
         mock_valid_url.assert_has_calls(expected_calls)
@@ -257,16 +257,16 @@ class TestGitRepoIndexerGetRepos:
         folder_path = "/test/repos"
 
         indexer = GitRepoIndexer(repo_urls, folder_path)
-        repos = indexer.get_repos()
+        repos = indexer.get_local_repos()
 
         assert repos == [mock_repo1, mock_repo2]
-        assert repos is indexer.repos  # Should return the same list object
+        assert repos is indexer.local_repos  # Should return the same list object
 
     @patch('java_mcp.git.git_repo_indexer.create_folder')
     def test_get_repos_empty_list(self, mock_create):
         """Test get_repos with empty repository list."""
         indexer = GitRepoIndexer([], "/test/repos")
-        repos = indexer.get_repos()
+        repos = indexer.get_local_repos()
 
         assert repos == []
         assert isinstance(repos, list)
@@ -284,8 +284,8 @@ class TestGitRepoIndexerGetRepos:
 
         indexer = GitRepoIndexer(["https://github.com/user/repo.git"], "/test/repos")
 
-        repos1 = indexer.get_repos()
-        repos2 = indexer.get_repos()
+        repos1 = indexer.get_local_repos()
+        repos2 = indexer.get_local_repos()
 
         assert repos1 == repos2
         assert repos1 is repos2  # Should be the exact same object
@@ -322,7 +322,7 @@ class TestGitRepoIndexerIntegration:
         assert indexer.folder_path == folder_path
 
         # Get repositories and verify
-        repos = indexer.get_repos()
+        repos = indexer.get_local_repos()
         assert len(repos) == 3
         assert all(isinstance(repo, MagicMock) for repo in repos)
 
@@ -424,7 +424,7 @@ class TestGitRepoIndexerEdgeCases:
 
         indexer = GitRepoIndexer(repo_urls, folder_path)
 
-        assert len(indexer.repos) == num_repos
+        assert len(indexer.local_repos) == num_repos
         assert mock_valid_url.call_count == num_repos
         assert mock_ping.call_count == num_repos
         assert mock_clone.call_count == num_repos
@@ -451,8 +451,294 @@ class TestGitRepoIndexerEdgeCases:
         indexer = GitRepoIndexer(repo_urls, folder_path)
 
         # Should process all URLs even if duplicated
-        assert len(indexer.repos) == 3
+        assert len(indexer.local_repos) == 3
         assert mock_clone.call_count == 3
+
+
+class TestGitRepoIndexerGetRemoteUrl:
+    """Test cases for GitRepoIndexer.get_remote_url static method."""
+
+    def test_get_remote_url_with_origin_https(self):
+        """Test get_remote_url with repository having HTTPS origin remote."""
+        # Create mock repository with origin remote
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/repo"
+
+        # Setup mock remotes - create a mock remotes collection
+        mock_origin = MagicMock()
+        mock_origin.name = "origin"
+        mock_origin.url = "https://github.com/user/repo.git"
+
+        # Create a mock remotes collection that behaves like GitPython's
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([mock_origin]))
+        mock_remotes.origin.url = "https://github.com/user/repo.git"
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify
+        assert result == "https://github.com/user/repo.git"
+
+    def test_get_remote_url_with_origin_ssh(self):
+        """Test get_remote_url with repository having SSH origin remote."""
+        # Create mock repository with SSH origin remote
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/repo"
+
+        # Setup mock remotes
+        mock_origin = MagicMock()
+        mock_origin.name = "origin"
+        mock_origin.url = "git@github.com:user/repo.git"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([mock_origin]))
+        mock_remotes.origin.url = "git@github.com:user/repo.git"
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify
+        assert result == "git@github.com:user/repo.git"
+
+    def test_get_remote_url_with_multiple_remotes_has_origin(self):
+        """Test get_remote_url with multiple remotes including origin."""
+        # Create mock repository with multiple remotes
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/repo"
+
+        # Setup multiple mock remotes
+        mock_origin = MagicMock()
+        mock_origin.name = "origin"
+        mock_origin.url = "https://github.com/user/repo.git"
+
+        mock_upstream = MagicMock()
+        mock_upstream.name = "upstream"
+        mock_upstream.url = "https://github.com/upstream/repo.git"
+
+        mock_fork = MagicMock()
+        mock_fork.name = "fork"
+        mock_fork.url = "https://github.com/fork/repo.git"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([mock_upstream, mock_origin, mock_fork]))
+        mock_remotes.origin.url = "https://github.com/user/repo.git"
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify origin URL is returned despite multiple remotes
+        assert result == "https://github.com/user/repo.git"
+
+    def test_get_remote_url_no_remotes(self):
+        """Test get_remote_url with repository having no remotes."""
+        # Create mock repository with no remotes
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/repo"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([]))
+        mock_remotes.__bool__ = MagicMock(return_value=False)
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify
+        assert result is None
+
+    def test_get_remote_url_no_origin_remote(self):
+        """Test get_remote_url with repository having remotes but no origin."""
+        # Create mock repository with remotes but no origin
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/repo"
+
+        # Setup mock remotes without origin
+        mock_upstream = MagicMock()
+        mock_upstream.name = "upstream"
+        mock_upstream.url = "https://github.com/upstream/repo.git"
+
+        mock_fork = MagicMock()
+        mock_fork.name = "fork"
+        mock_fork.url = "https://github.com/fork/repo.git"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([mock_upstream, mock_fork]))
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify
+        assert result is None
+
+    def test_get_remote_url_none_repo_raises_error(self):
+        """Test get_remote_url with None repository raises ValueError."""
+        with pytest.raises(ValueError, match="repo must be provided"):
+            GitRepoIndexer.get_remote_url(None)
+
+    def test_get_remote_url_empty_repo_raises_error(self):
+        """Test get_remote_url with empty/falsy repository raises ValueError."""
+        with pytest.raises(ValueError, match="repo must be provided"):
+            GitRepoIndexer.get_remote_url("")
+
+        with pytest.raises(ValueError, match="repo must be provided"):
+            GitRepoIndexer.get_remote_url(False)
+
+        with pytest.raises(ValueError, match="repo must be provided"):
+            GitRepoIndexer.get_remote_url(0)
+
+    def test_get_remote_url_with_gitlab_url(self):
+        """Test get_remote_url with GitLab repository URL."""
+        # Create mock repository with GitLab origin
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/repo"
+
+        # Setup mock remotes
+        mock_origin = MagicMock()
+        mock_origin.name = "origin"
+        mock_origin.url = "https://gitlab.com/user/project.git"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([mock_origin]))
+        mock_remotes.origin.url = "https://gitlab.com/user/project.git"
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify
+        assert result == "https://gitlab.com/user/project.git"
+
+    def test_get_remote_url_with_custom_git_server(self):
+        """Test get_remote_url with custom Git server URL."""
+        # Create mock repository with custom Git server
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/repo"
+
+        # Setup mock remotes
+        mock_origin = MagicMock()
+        mock_origin.name = "origin"
+        mock_origin.url = "https://git.company.com/team/project.git"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([mock_origin]))
+        mock_remotes.origin.url = "https://git.company.com/team/project.git"
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify
+        assert result == "https://git.company.com/team/project.git"
+
+    def test_get_remote_url_with_ssh_custom_port(self):
+        """Test get_remote_url with SSH URL using custom port."""
+        # Create mock repository with SSH URL and custom port
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/repo"
+
+        # Setup mock remotes
+        mock_origin = MagicMock()
+        mock_origin.name = "origin"
+        mock_origin.url = "ssh://git@git.company.com:2222/team/project.git"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([mock_origin]))
+        mock_remotes.origin.url = "ssh://git@git.company.com:2222/team/project.git"
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify
+        assert result == "ssh://git@git.company.com:2222/team/project.git"
+
+    def test_get_remote_url_case_sensitivity(self):
+        """Test get_remote_url is case sensitive for remote names."""
+        # Create mock repository with uppercase "ORIGIN" remote
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/repo"
+
+        # Setup mock remotes with uppercase name
+        mock_origin_upper = MagicMock()
+        mock_origin_upper.name = "ORIGIN"
+        mock_origin_upper.url = "https://github.com/user/repo.git"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([mock_origin_upper]))
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify - should return None because it looks for lowercase "origin"
+        assert result is None
+
+    @patch('java_mcp.git.git_repo_indexer.logger')
+    def test_get_remote_url_logging(self, mock_logger):
+        """Test get_remote_url produces appropriate log messages."""
+        # Create mock repository with origin remote
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/test/repo"
+
+        # Setup mock remotes
+        mock_origin = MagicMock()
+        mock_origin.name = "origin"
+        mock_origin.url = "https://github.com/user/repo.git"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([mock_origin]))
+        mock_remotes.origin.url = "https://github.com/user/repo.git"
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify logging calls
+        mock_logger.debug.assert_has_calls([
+            call("Fetching remote Git repository URL for: /path/to/test/repo"),
+            call("Origin URL: https://github.com/user/repo.git")
+        ])
+
+        # Verify result
+        assert result == "https://github.com/user/repo.git"
+
+    @patch('java_mcp.git.git_repo_indexer.logger')
+    def test_get_remote_url_logging_no_origin(self, mock_logger):
+        """Test get_remote_url logging when no origin remote exists."""
+        # Create mock repository with no origin remote
+        mock_repo = MagicMock(spec=Repo)
+        mock_repo.working_dir = "/path/to/test/repo"
+
+        mock_remotes = MagicMock()
+        mock_remotes.__iter__ = MagicMock(return_value=iter([]))
+        mock_remotes.__bool__ = MagicMock(return_value=False)
+        mock_repo.remotes = mock_remotes
+
+        # Execute
+        result = GitRepoIndexer.get_remote_url(mock_repo)
+
+        # Verify logging calls - should only log the initial debug message
+        mock_logger.debug.assert_called_once_with(
+            "Fetching remote Git repository URL for: /path/to/test/repo"
+        )
+
+        # Verify result
+        assert result is None
+
+    @patch('java_mcp.git.git_repo_indexer.logger')
+    def test_get_remote_url_logging_error_for_none_repo(self, mock_logger):
+        """Test get_remote_url error logging for None repository."""
+        # Execute and expect exception
+        with pytest.raises(ValueError, match="repo must be provided"):
+            GitRepoIndexer.get_remote_url(None)
+
+        # Verify error logging
+        mock_logger.error.assert_called_once_with("repo must be provided")
 
 
 if __name__ == "__main__":

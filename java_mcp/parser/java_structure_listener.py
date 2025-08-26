@@ -34,7 +34,7 @@ License: Apache-2.0
 
 from typing import List
 
-from java_mcp.types import Class, Method, Field, Parameter
+from java_mcp.java.types import Class, Method, Field, Parameter
 from java_mcp.parser.antlr4 import JavaParser, JavaParserListener
 
 class JavaStructureListener(JavaParserListener):

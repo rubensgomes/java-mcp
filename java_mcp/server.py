@@ -93,7 +93,7 @@ class MCPServer(Server):
 
             # Initialize Java analyzer with indexed repositories
             logger.info("Creating JavaAnalyzer instance")
-            self.analyzer = JavaKotlinAnalyzer(self.indexer.repos)
+            self.analyzer = JavaKotlinAnalyzer(self.indexer.local_repos)
 
             # Analyze repositories for Java/Kotlin code
             logger.info("Analyzing repositories for Java/Kotlin source code")
@@ -256,10 +256,10 @@ async def run_stdio_server(repo_paths: List[str], name: str = "ghmcp-server",
         server = MCPGitHubServer(repo_paths, name=name)
 
         # Validate that repositories were found before starting stdio mode
-        if not server.indexer.repos:
+        if not server.indexer.local_repos:
             raise ValueError("No valid Git repositories found in the provided paths")
 
-        logger.info(f"Successfully indexed {len(server.indexer.repos)} repositories, starting stdio mode")
+        logger.info(f"Successfully indexed {len(server.indexer.local_repos)} repositories, starting stdio mode")
 
         # Run in stdio mode (removed loop parameter as it's not supported)
         await server.run_stdio()

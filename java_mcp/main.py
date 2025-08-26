@@ -92,11 +92,11 @@ def start_server(repo_urls: List[str],
 
         # Validate that repositories were found
         logger.debug("Validating indexed repositories...")
-        if not server.indexer.repos:
+        if not server.indexer.local_repos:
             raise ValueError("No valid Git repositories found in the provided paths")
 
-        logger.info(f"Successfully indexed {len(server.indexer.repos)} repositories:")
-        for repo in server.indexer.repos:
+        logger.info(f"Successfully indexed {len(server.indexer.local_repos)} repositories:")
+        for repo in server.indexer.local_repos:
             repo_name = os.path.basename(repo.working_dir)
             logger.info(f"  - {repo_name} ({repo.working_dir})")
             logger.debug(f"    Repository working directory: {repo.working_dir}")

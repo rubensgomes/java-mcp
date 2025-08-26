@@ -10,18 +10,16 @@ License: Apache-2.0
 """
 
 import unittest
-from unittest.mock import Mock, patch, mock_open, MagicMock
+from unittest.mock import Mock, patch, mock_open
 import tempfile
-import os
 from pathlib import Path
-from typing import Dict, Any, List
 
 # Add error handling for imports that might fail
 try:
     from java_mcp.parser.java_source_parser import JavaSourceParser
     from java_mcp.parser.java_doc_extractor import JavaDocExtractor
     from java_mcp.parser.java_structure_listener import JavaStructureListener
-    from java_mcp.types import Class, Method, Field, Parameter
+    from java_mcp.java.types import Class, Method, Field, Parameter
     IMPORTS_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: Could not import required modules: {e}")
