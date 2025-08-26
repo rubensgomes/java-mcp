@@ -1,35 +1,71 @@
 """
-Git Operations Module for Java MCP Server
+Git Utility Functions Module for Java MCP Server
 
-This module provides utilities for git repository management including cloning, updating,
-and validating git repositories. It uses the GitPython library to perform git operations
-and includes comprehensive logging and error handling.
+This module provides a comprehensive set of utility functions for git repository management
+including cloning, updating, validating, and accessing git repositories. It serves as the
+core utility layer for git operations within the Java MCP Server architecture.
+
+The module uses the GitPython library to perform git operations and includes comprehensive
+logging, error handling, and input validation. All functions are designed to be robust,
+with proper error handling and detailed logging for debugging and monitoring purposes.
 
 Key Features:
 - Clone git repositories with shallow cloning (depth=1) for efficiency
-- Update existing repositories by pulling latest changes
-- Validate git URLs and repository states
-- Automatic folder creation and path management
-- Comprehensive logging for all operations
-- Input validation for all parameters
+- Update existing repositories by pulling latest changes from remote
+- Validate git URLs and repository states with comprehensive checks
+- Check repository accessibility without full cloning using git ls-remote
+- Automatic folder creation and path management with cross-platform support
+- Comprehensive logging for all operations with configurable log levels
+- Input validation for all parameters with detailed error messages
+- Repository state validation and URL matching capabilities
 
-Main Functions:
+Core Functions:
 - clone_or_update(): Unified interface for cloning new or updating existing repositories
-- update(): Update an existing repository with latest changes
-- is_valid_git_url(): Validate git repository URLs
-- is_git_repo(): Check if a folder contains a git repository
-- git_folder_name(): Generate repository folder paths from URLs
+- update(): Update an existing repository with latest changes from remote origin
+- is_valid_git_url(): Validate git repository URLs for format and protocol compliance
+- is_git_repo(): Check if a folder contains a valid git repository
+- is_valid_git_repo(): Validate repository exists and matches expected remote URL
+- git_folder_name(): Generate repository folder paths from repository URLs
+- ping_git_repository(): Check repository accessibility without cloning
+- create_folder(): Create directory structures recursively with proper error handling
+
+Private Functions:
+- _validate_inputs(): Internal input validation for folder paths and repository URLs
+
+Supported Git Protocols:
+- HTTP/HTTPS: http://, https:// (for public and authenticated repositories)
+- SSH: git@hostname:user/repo.git (for SSH key-based authentication)
+- SSH explicit: ssh://git@hostname/user/repo.git (alternative SSH format)
+
+Error Handling:
+All functions include comprehensive error handling with specific exception types:
+- ValueError: For invalid input parameters
+- GitCommandError: For git operation failures
+- InvalidGitRepositoryError: For repository validation failures
+- OSError: For file system operation failures
+
+Dependencies:
+- GitPython: For git repository operations and command execution
+- pathlib: For cross-platform path handling and manipulation
+- logging: For comprehensive operation logging and debugging
+
+Usage Patterns:
+This module is designed to be used by higher-level components like GitRepoIndexer
+for batch operations, or directly for individual repository management tasks.
 
 Author: Rubens Gomes
 License: Apache-2.0
+Version: 1.1.0
+Last Updated: August 2025
 """
 
 import logging
 from pathlib import Path
 
-from git import Repo, InvalidGitRepositoryError
+from git import Repo, GitCommandError, InvalidGitRepositoryError
+from git.cmd import Git
 
-# Configure logging
+# Configure logging for the module
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -84,7 +120,7 @@ def _validate_inputs(folder_path: str, repository_url: str) -> None:
         raise ValueError(error_msg)
 
 
-def _create_folder(folder_path: str) -> None:
+def create_folder(folder_path: str) -> None:
     """
     Create the specified folder path if it does not exist.
 
@@ -107,10 +143,10 @@ def _create_folder(folder_path: str) -> None:
         TypeError: If folder_path is not a string
 
     Example:
-        >>> _create_folder("/path/to/new/directory")
+        >>> create_folder("/path/to/new/directory")
         # Creates the entire directory structure if it doesn't exist
 
-        >>> _create_folder("relative/path/to/dir")
+        >>> create_folder("relative/path/to/dir")
         # Creates relative directory structure from current working directory
 
     Note:
@@ -121,6 +157,48 @@ def _create_folder(folder_path: str) -> None:
     logger.debug("Creating folder: %s", folder_path)
     Path(folder_path).mkdir(parents=True, exist_ok=True)
     logger.info("Folder created successfully: %s", folder_path)
+
+
+def is_git_repo(folder_path: str) -> bool:
+    """
+    Check if the specified folder path is a valid git repository.
+
+    This function determines if a given folder contains a git repository by
+    checking for the existence of the folder and the presence of a .git
+    subdirectory. It resolves the path to handle relative paths correctly.
+
+    Args:
+        folder_path (str): The path to the folder to check. Can be an absolute
+                          or relative path.
+
+    Returns:
+        bool: True if the folder exists and contains a .git subdirectory,
+              False otherwise.
+
+    Example:
+        >>> is_git_repo("/path/to/existing/repo")
+        True  # If /path/to/existing/repo/.git exists
+
+        >>> is_git_repo("/path/to/regular/folder")
+        False  # If folder exists but no .git subdirectory
+
+        >>> is_git_repo("/path/to/nonexistent")
+        False  # If folder doesn't exist
+
+    Note:
+        This function only checks for the presence of a .git directory and
+        does not validate the integrity or state of the git repository.
+    """
+    logger.debug("Checking if folder is a valid git repository: %s", folder_path)
+    target_path = Path(folder_path).resolve()
+    is_valid = target_path.exists() and (target_path / '.git').exists()
+
+    if is_valid:
+        logger.debug("Valid git repository found at: %s", folder_path)
+    else:
+        logger.debug("No git repository found at: %s", folder_path)
+
+    return is_valid
 
 
 def is_valid_git_url(url: str) -> bool:
@@ -177,48 +255,6 @@ def is_valid_git_url(url: str) -> bool:
         logger.debug("Git URL is valid: %s", url)
     else:
         logger.warning("Git URL is invalid: %s", url)
-
-    return is_valid
-
-
-def is_git_repo(folder_path: str) -> bool:
-    """
-    Check if the specified folder path is a valid git repository.
-
-    This function determines if a given folder contains a git repository by
-    checking for the existence of the folder and the presence of a .git
-    subdirectory. It resolves the path to handle relative paths correctly.
-
-    Args:
-        folder_path (str): The path to the folder to check. Can be an absolute
-                          or relative path.
-
-    Returns:
-        bool: True if the folder exists and contains a .git subdirectory,
-              False otherwise.
-
-    Example:
-        >>> is_git_repo("/path/to/existing/repo")
-        True  # If /path/to/existing/repo/.git exists
-
-        >>> is_git_repo("/path/to/regular/folder")
-        False  # If folder exists but no .git subdirectory
-
-        >>> is_git_repo("/path/to/nonexistent")
-        False  # If folder doesn't exist
-
-    Note:
-        This function only checks for the presence of a .git directory and
-        does not validate the integrity or state of the git repository.
-    """
-    logger.debug("Checking if folder is a valid git repository: %s", folder_path)
-    target_path = Path(folder_path).resolve()
-    is_valid = target_path.exists() and (target_path / '.git').exists()
-
-    if is_valid:
-        logger.debug("Valid git repository found at: %s", folder_path)
-    else:
-        logger.debug("No git repository found at: %s", folder_path)
 
     return is_valid
 
@@ -314,7 +350,7 @@ def git_folder_name(folder_path: str, repository_url: str) -> str:
     return full_path
 
 
-def update(folder_path: str, repository_url: str) -> None:
+def update(folder_path: str, repository_url: str) -> Repo:
     """
     Update an existing git repository by pulling the latest changes from the remote.
 
@@ -331,8 +367,7 @@ def update(folder_path: str, repository_url: str) -> None:
                              using supported protocols: http://, https://, git@, or ssh://).
 
     Returns:
-        None: This function does not return a value. It either completes successfully
-              after updating the repository or raises an exception on invalid inputs.
+        Repo: The updated local Git repository
 
     Raises:
         ValueError: If folder_path or repository_url is invalid (raised by _validate_inputs)
@@ -341,10 +376,10 @@ def update(folder_path: str, repository_url: str) -> None:
         GitCommandError: If the git pull operation fails
 
     Example:
-        >>> update("/path/to/repos", "https://github.com/user/repo.git")
+        >>> repo = update("/path/to/repos", "https://github.com/user/repo.git")
         # Successfully pulls latest changes if repository exists and URL matches
 
-        >>> update("/path/to/repos", "https://github.com/user/different.git")
+        >>> repo = update("/path/to/repos", "https://github.com/user/different.git")
         Exception: Repository at /path/to/repos/different has different remote URL...
 
     Note:
@@ -370,12 +405,15 @@ def update(folder_path: str, repository_url: str) -> None:
         repo.remotes.origin.pull()
         logger.info("Successfully pulled latest changes from remote repository")
     else:
-        error_msg = ( f"Repository at {target_git_folder} has different remote "
-                      f"URL: {repo.remotes.origin.url}. Expected: {repository_url}")
+        error_msg = (f"Repository at {target_git_folder} has different remote "
+                     f"URL: {repo.remotes.origin.url}. Expected: {repository_url}")
         raise InvalidGitRepositoryError(error_msg)
 
+    # returns an updated local repository
+    return repo
 
-def clone_or_update(folder_path: str, repository_url: str) -> None:
+
+def clone_or_update(folder_path: str, repository_url: str) -> Repo:
     """
     Clone a git repository or update it if it already exists at the specified folder path.
 
@@ -400,8 +438,7 @@ def clone_or_update(folder_path: str, repository_url: str) -> None:
                              .git and using supported protocols: http://, https://, git@, ssh://).
 
     Returns:
-        None: This function does not return a value. It either completes successfully
-              after cloning or updating the repository, or raises an exception on error.
+        Repo: The cloned or updated local Git repository
 
     Raises:
         ValueError: If folder_path or repository_url is invalid (raised by _validate_inputs)
@@ -410,14 +447,14 @@ def clone_or_update(folder_path: str, repository_url: str) -> None:
         GitCommandError: If git operations (clone or pull) fail
 
     Example:
-        >>> clone_or_update("/path/to/repos", "https://github.com/user/repo.git")
+        >>> repo = clone_or_update("/path/to/repos", "https://github.com/user/repo.git")
         # If /path/to/repos/repo doesn't exist, clones the repository there
         # If /path/to/repos/repo exists and matches URL, pulls latest changes
 
-        >>> clone_or_update("/path/to/repos", "https://github.com/user/different.git")
+        >>> repo = clone_or_update("/path/to/repos", "https://github.com/user/different.git")
         # Creates /path/to/repos/different if it doesn't exist
 
-        >>> clone_or_update("/path/to/repos", "https://github.com/user/wrong.git")
+        >>> repo = clone_or_update("/path/to/repos", "https://github.com/user/wrong.git")
         # Raises Exception if /path/to/repos/wrong exists but has different remote URL
 
     Note:
@@ -431,13 +468,17 @@ def clone_or_update(folder_path: str, repository_url: str) -> None:
     # validate function parameters
     _validate_inputs(folder_path, repository_url)
     # ensure the target folder exists
-    _create_folder(folder_path)
+    create_folder(folder_path)
     # check if a git folder already exists for the given repo URL
     target_git_folder = git_folder_name(folder_path, repository_url)
     logger.debug("Resolved target git folder: %s", target_git_folder)
 
+    # the local Git repository cloned or updated
+    repo: Repo
+
     if is_git_repo(target_git_folder):
         logger.info("Repository already exists at %s", target_git_folder)
+
         if is_valid_git_repo(target_git_folder, repository_url):
             logger.info("Existing repository at %s matches the provided URL. "
                         "Pulling latest changes...", target_git_folder)
@@ -445,14 +486,70 @@ def clone_or_update(folder_path: str, repository_url: str) -> None:
             repo.remotes.origin.pull()
             logger.info("Successfully pulled latest changes from remote repository")
         else:
-            error_msg = ( f"Existing repository at {target_git_folder} does not match "
-                          f"the provided URL: {repository_url}" )
+            error_msg = (f"Existing repository at {target_git_folder} does not match "
+                         f"the provided URL: {repository_url}")
             logger.error(error_msg)
             raise InvalidGitRepositoryError(error_msg)
+
     else:
         # Convert to Path object for better path handling
         target_path = Path(folder_path)
         # Clone repository using GitPython with shallow clone (depth 1)
         logger.info("Cloning repository %s to %s...", repository_url, target_path)
-        Repo.clone_from(repository_url, target_path, depth=1)
+        repo = Repo.clone_from(repository_url, target_path, depth=1)
         logger.info("Successfully cloned repository to %s", target_path)
+
+    return repo
+
+
+def ping_git_repository(repository_url: str) -> bool:
+    """
+    Quickly check if a git repository URL is accessible without cloning.
+
+    This function performs a lightweight accessibility check for git repositories
+    using the git ls-remote command. It's much faster than cloning and doesn't
+    require local storage, making it ideal for validation purposes before
+    attempting expensive clone operations.
+
+    The function uses the git ls-remote --exit-code command which:
+    - Returns exit code 0 if the repository exists and is accessible
+    - Returns exit code 2 if the repository doesn't exist or has no refs
+    - Throws GitCommandError for authentication or network issues
+
+    Args:
+        repository_url (str): The git repository URL to check. Should be a valid
+                             git URL format (http://, https://, git@, or ssh://).
+
+    Returns:
+        bool: True if the repository is accessible and contains refs,
+              False if the repository is inaccessible, doesn't exist,
+              or if any error occurs during the check.
+
+    Example:
+        >>> ping_git_repository("https://github.com/octocat/Hello-World.git")
+        True  # Public repository is accessible
+
+        >>> ping_git_repository("https://github.com/nonexistent/repo.git")
+        False  # Repository doesn't exist
+
+        >>> ping_git_repository("https://private-git.company.com/secret/repo.git")
+        False  # May fail due to authentication requirements
+
+    Note:
+        This function is designed to fail gracefully. Any exception during
+        the git ls-remote operation will result in False being returned.
+        For private repositories, this function may return False even if
+        the repository exists but requires authentication.
+    """
+    try:
+        git = Git()
+        # ls-remote with --exit-code returns 0 if refs exist, 2 if not
+        git.ls_remote("--exit-code", repository_url)
+        logger.debug(f"Repository is accessible: {repository_url}")
+        return True
+    except GitCommandError as e:
+        logger.warning(f"Repository not accessible: {repository_url} - {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Error checking repository: {repository_url} - {e}")
+        return False
