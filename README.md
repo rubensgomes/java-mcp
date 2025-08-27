@@ -84,7 +84,8 @@ following are some requirements for the MCP server:
   coding assistants.
 - The MCP server should define Python @dataclass classes to implement data
   structures that represent the extracted Java API code elements (annotations,
-  classes, methods, parameters, fields) information and documentation in a structured format.
+  classes, methods, parameters, fields) information and documentation in a
+  structured format.
 
 ## Workflow of the MCP server
 
@@ -95,22 +96,56 @@ Context
 
 Java Source Code → Lexer → Tokens → Parser → Parse Tree → Your Analysis
 
-### Data Structure Objects
+## Application Classes
+
+### Data Structure Classes
 
 [Annotation](java_mcp/java/types/annotation.py)
+
 - Represents a Java annotation with its name and parameters.
 
 [Parameter](java_mcp/java/types/parameter.py)
-- Represents a Java method parameter with complete type and annotation information.
+
+- Represents a Java method parameter with complete type and annotation
+  information.
 
 [Method](java_mcp/java/types/method.py)
+
 - Represents a Java method with complete signature and metadata information.
 
 [Field](java_mcp/java/types/field.py)
+
 - Represents a Java field (instance or class variable) with complete metadata.
 
 [Class](java_mcp/java/types/java_class.py)
-- Represents a complete Java class, interface, enum, or record with all metadata.
+
+- Represents a complete Java class, interface, enum, or record with all
+  metadata.
+
+### Base Model Classes
+
+[AnalyzeClassRequest](java_mcp/model/analyze_class_request.py)
+
+- Represents a request to analyze a Java class, requiring as input the
+  fully-qualified class name, and optional the repository name.
+  source file path.
+
+[ExtractAPIsRequest](java_mcp/model/extract_apis_request.py)
+
+- Represents a request to extract Java APIs, requiring as input the
+  Git repository URL, and the corresponding branch. It takes as optional inputs
+  a package name, and class name to filter the extraction.
+
+[GenerateGuideRequest](java_mcp/model/generate_guide_request.py)
+
+- Represents a request to generate API usage guides. It takes as input a
+  specific use case or functionality needed. And for optional inputs it takes a
+  specific repository to focus on.
+
+[SearchMethodsRequest](java_mcp/model/search_methods_request.py)
+
+- Represents a request to search for Java methods. It takes as input the method
+  name to search for. As optional inputs it takes a class name to filter on.
 
 ### Behaviour Objects
 
@@ -148,8 +183,22 @@ Inputs:
 Outputs:
 
 - list of paths to Java source files found under the `src/main/java` directory
-  of
-  each local cloned Git repository.
+  of each local cloned Git repository.
+
+### [ParseErrorListener](java_mcp/parser/parser_error_listener.py)
+
+Purpose:
+
+- Custom ANTLR4 error listener used to report syntax errors during lexical and
+  parser analysis of for Java source code processing.
+
+Inputs:
+
+- ANTLR4 syntax errors during lexical and parser analysis of Java source code.
+
+Outputs:
+
+- Logs syntax errors during lexical and parser analysis of Java source code.
 
 ## Development Setup
 
