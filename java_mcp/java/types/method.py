@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from .annotation import Annotation
+from .parameter import Parameter
 
 @dataclass
 class Method:

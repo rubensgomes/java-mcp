@@ -1,6 +1,11 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from .method import Method
+from .field import Field
+from .parameter import Parameter
+from .annotation import Annotation
+
 
 @dataclass
 class Class:

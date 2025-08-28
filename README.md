@@ -149,7 +149,7 @@ Java Source Code → Lexer → Tokens → Parser → Parse Tree → Your Analysi
 
 ### Behaviour Objects
 
-### [GitRepoIndexer](java_mcp/git/git_repo_indexer.py)
+#### [GitRepoIndexer](java_mcp/git/git_repo_indexer.py)
 
 Purpose:
 
@@ -169,7 +169,7 @@ Outputs:
   This means Git only fetches the latest commit from the default branch on the
   specified Git remote repository.
 
-### [JavaPathIndexer](java_mcp/java/java_path_indexer.py)
+#### [JavaPathIndexer](java_mcp/java/java_path_indexer.py)
 
 Purpose:
 
@@ -185,7 +185,7 @@ Outputs:
 - list of paths to Java source files found under the `src/main/java` directory
   of each local cloned Git repository.
 
-### [ParseErrorListener](java_mcp/parser/parser_error_listener.py)
+#### [ParseErrorListener](java_mcp/parser/parser_error_listener.py)
 
 Purpose:
 
@@ -199,6 +199,41 @@ Inputs:
 Outputs:
 
 - Logs syntax errors during lexical and parser analysis of Java source code.
+
+#### [SourceParser](java_mcp/parser/source_parser.py)
+
+Purpose:
+
+- The SourceParser starts the lexical analysis (or "scanning") of the Java
+  source code followed by the syntax analysis (or "parsing"). Then, it generates
+  a Parer Walker Tree which is processed by a listener to extract the API
+  elements (e.g, annotations, methods, parameters, fields, classes).
+
+Inputs:
+
+- Source file path to a Java source code file, and the corresponding content of
+  the file.
+
+Outputs:
+
+- A `Class` object representing the parsed Java class, interface, enum, or
+  record with all its metadata.
+
+#### [APIExtractorListener](java_mcp/parser/api_extractor_listener.py)
+
+Purpose:
+
+- Event-driven ANTLR4 Listener for extracting Java API information from parse
+  trees.
+
+Inputs:
+
+- Parser Walker Tree generated from a Java source code file.
+
+Outputs:
+
+- Java API elements (e.g., import, method declaration, classes) populated from
+  inside event-driven enter methods called by the ANTLR4 Parser Walker. .
 
 ## Development Setup
 
