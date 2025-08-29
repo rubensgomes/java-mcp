@@ -100,24 +100,24 @@ Java Source Code → Lexer → Tokens → Parser → Parse Tree → Your Analysi
 
 ### Data Structure Classes
 
-[Annotation](java_mcp/java/types/annotation.py)
+[Annotation](java_mcp/types/annotation.py)
 
 - Represents a Java annotation with its name and parameters.
 
-[Parameter](java_mcp/java/types/parameter.py)
+[Parameter](java_mcp/types/parameter.py)
 
 - Represents a Java method parameter with complete type and annotation
   information.
 
-[Method](java_mcp/java/types/method.py)
+[Method](java_mcp/types/method.py)
 
 - Represents a Java method with complete signature and metadata information.
 
-[Field](java_mcp/java/types/field.py)
+[Field](java_mcp/types/field.py)
 
 - Represents a Java field (instance or class variable) with complete metadata.
 
-[Class](java_mcp/java/types/java_class.py)
+[Class](java_mcp/types/java_class.py)
 
 - Represents a complete Java class, interface, enum, or record with all
   metadata.
@@ -169,7 +169,7 @@ Outputs:
   This means Git only fetches the latest commit from the default branch on the
   specified Git remote repository.
 
-#### [JavaPathIndexer](java_mcp/java/java_path_indexer.py)
+#### [PathIndexer](java_mcp/parser/path_indexer.py)
 
 Purpose:
 

@@ -9,10 +9,10 @@ All external dependencies are properly mocked to ensure isolated testing.
 import pytest
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 from git import Repo
 
-from java_mcp.java.java_path_indexer import JavaPathIndexer
+from java_mcp.parser.path_indexer import PathIndexer
 
 
 class TestJavaPathIndexerInit:
@@ -43,7 +43,7 @@ class TestJavaPathIndexerInit:
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
 
             # Verify
             assert len(indexer.java_paths) == 3
@@ -88,7 +88,7 @@ class TestJavaPathIndexerInit:
             ]
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo1, mock_repo2])
+            indexer = PathIndexer([mock_repo1, mock_repo2])
 
             # Verify - Note: the current implementation overwrites java_paths for each repo
             # This appears to be a bug in the implementation
@@ -101,7 +101,7 @@ class TestJavaPathIndexerInit:
         mock_repo.bare = True
 
         with pytest.raises(ValueError, match="Repository is bare or not local"):
-            JavaPathIndexer([mock_repo])
+            PathIndexer([mock_repo])
 
     @patch('java_mcp.java.java_path_indexer.GitRepoIndexer.get_remote_url')
     def test_initialization_no_remote_url_raises_error(self, mock_get_remote_url):
@@ -111,7 +111,7 @@ class TestJavaPathIndexerInit:
         mock_get_remote_url.return_value = None
 
         with pytest.raises(ValueError, match="Could not retrieve the remote URL"):
-            JavaPathIndexer([mock_repo])
+            PathIndexer([mock_repo])
 
     @patch('java_mcp.java.java_path_indexer.GitRepoIndexer.get_remote_url')
     def test_initialization_no_java_source_directory_raises_error(self, mock_get_remote_url):
@@ -126,7 +126,7 @@ class TestJavaPathIndexerInit:
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
             with pytest.raises(FileNotFoundError, match="No Java source directory"):
-                JavaPathIndexer([mock_repo])
+                PathIndexer([mock_repo])
 
     @patch('java_mcp.java.java_path_indexer.GitRepoIndexer.get_remote_url')
     def test_initialization_empty_java_directory(self, mock_get_remote_url):
@@ -143,7 +143,7 @@ class TestJavaPathIndexerInit:
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
 
             # Verify
             assert len(indexer.java_paths) == 0
@@ -172,7 +172,7 @@ class TestJavaPathIndexerInit:
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
 
             # Verify
             assert len(indexer.java_paths) == 3
@@ -204,7 +204,7 @@ class TestJavaPathIndexerInit:
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
 
             # Verify only Java files are found
             assert len(indexer.java_paths) == 2
@@ -217,7 +217,7 @@ class TestJavaPathIndexerInit:
 
     def test_initialization_empty_repo_list(self):
         """Test initialization with empty repository list."""
-        indexer = JavaPathIndexer([])
+        indexer = PathIndexer([])
         assert indexer.java_paths == []
 
 
@@ -243,7 +243,7 @@ class TestJavaPathIndexerGetJavaPaths:
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
             paths = indexer.get_java_paths()
 
             # Verify
@@ -267,7 +267,7 @@ class TestJavaPathIndexerGetJavaPaths:
             mock_repo.working_dir = str(temp_path)
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
             paths = indexer.get_java_paths()
 
             assert paths == []
@@ -287,7 +287,7 @@ class TestJavaPathIndexerGetJavaPaths:
             mock_repo.working_dir = str(temp_path)
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
 
             paths1 = indexer.get_java_paths()
             paths2 = indexer.get_java_paths()
@@ -337,7 +337,7 @@ class TestJavaPathIndexerIntegration:
             mock_get_remote_url.return_value = "https://github.com/user/myapp.git"
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
             paths = indexer.get_java_paths()
 
             # Verify
@@ -373,7 +373,7 @@ class TestJavaPathIndexerIntegration:
             mock_get_remote_url.return_value = "https://github.com/user/gradle-project.git"
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
             paths = indexer.get_java_paths()
 
             # Verify
@@ -389,7 +389,7 @@ class TestJavaPathIndexerEdgeCases:
     def test_initialization_with_none_repos(self):
         """Test initialization with None repository list."""
         with pytest.raises(TypeError):
-            JavaPathIndexer(None)
+            PathIndexer(None)
 
     @patch('java_mcp.java.java_path_indexer.GitRepoIndexer.get_remote_url')
     def test_java_files_with_special_characters(self, mock_get_remote_url):
@@ -416,7 +416,7 @@ class TestJavaPathIndexerEdgeCases:
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
 
             # Verify
             assert len(indexer.java_paths) == 4
@@ -443,7 +443,7 @@ class TestJavaPathIndexerEdgeCases:
             mock_get_remote_url.return_value = "https://github.com/user/repo.git"
 
             # Execute
-            indexer = JavaPathIndexer([mock_repo])
+            indexer = PathIndexer([mock_repo])
 
             # Verify only .java (lowercase) files are found
             assert len(indexer.java_paths) == 1

@@ -41,7 +41,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-class JavaPathIndexer:
+class PathIndexer:
     """
     A class for indexing Java source file paths from Git repositories.
 
@@ -90,7 +90,7 @@ class JavaPathIndexer:
             >>> from java_mcp.git.git_repo_indexer import GitRepoIndexer
             >>> git_indexer = GitRepoIndexer(repo_urls, "/local/repos")
             >>> local_repos = git_indexer.get_local_repos()
-            >>> java_indexer = JavaPathIndexer(local_repos)
+            >>> java_indexer = PathIndexer(local_repos)
             >>> print(f"Found {len(java_indexer.java_paths)} Java files")
 
         Note:
@@ -148,7 +148,7 @@ class JavaPathIndexer:
                         initialization.
 
         Example:
-            >>> indexer = JavaPathIndexer(local_repos)
+            >>> indexer = PathIndexer(local_repos)
             >>> java_files = indexer.get_java_paths()
             >>> for java_file in java_files:
             ...     print(f"Java file: {java_file}")

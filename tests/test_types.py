@@ -6,7 +6,7 @@ including Parameter, Method, Field, and Class dataclasses, testing their initial
 default values, post-initialization behavior, and integration scenarios.
 """
 
-from java_mcp.java.types import Parameter, Method, Field, Class
+from java_mcp.types import Parameter, Method, Field, Class
 
 
 class TestParameter:

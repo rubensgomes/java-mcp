@@ -9,5 +9,5 @@ were downloaded from:
 
 ```shell
 # generates Python3 lexer and parser files into ../java_mcp/antlr4
-antlr -Dlanguage=Python3 JavaLexer.g4 JavaParser.g4 -o ../java_mcp/antlr4
+antlr -Dlanguage=Python3 JavaLexer.g4 JavaParser.g4 -o ../java_mcp/parser/antlr4
 ```

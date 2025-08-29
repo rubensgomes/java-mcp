@@ -4,7 +4,7 @@ from typing import List
 
 from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
 
-from java_mcp.java.types.java_class import Class
+from java_mcp.types import Class
 from java_mcp.parser.antlr4.JavaLexer import JavaLexer
 from java_mcp.parser.antlr4.JavaParser import JavaParser
 
@@ -16,21 +16,69 @@ logger = logging.getLogger(__name__)
 
 
 class SourceParser:
-    """Parser for extracting Java API information from source code using ANTLR4."""
+    """
+    ANTLR4-based Java source code parser for API extraction.
+
+    This parser uses the ANTLR4 Java grammar to parse Java source files and
+    extract comprehensive API information. It employs the listener pattern
+    for efficient parse tree traversal and robust error handling.
+
+    The parser supports all Java language features from Java 8 through Java 24,
+    including modern constructs like records, sealed classes, pattern matching,
+    and text blocks.
+
+    Attributes:
+        error_listener (JavaParseErrorListener): Custom error listener that captures
+                                               parse errors instead of printing to stderr
+
+    Examples:
+        parser = SourceParser()
+        classes = parser.parse_file(Path("User.java"), java_source_code)
+
+        for cls in classes:
+            print(f"Found class: {cls.name} in package {cls.package}")
+            for method in cls.methods:
+                print(f"  Method: {method.name}({method.parameters})")
+    """
 
     def __init__(self):
         self.error_listener = ParseErrorListener()
 
     def parse_file(self, file_path: Path, content: str) -> List[Class]:
-        """Parse a Java source file and extract class information using ANTLR4."""
-        logger.debug(f"Parsing {file_path}")
+        """
+        Parse a Java source file and extract comprehensive API information.
 
+        Uses ANTLR4 lexer and parser to build a parse tree, then walks the tree
+        with a custom listener to extract classes, methods, fields, and all
+        associated metadata including annotations, modifiers, and documentation.
+
+        Args:
+            file_path (Path): Path to the Java source file being parsed
+            content (str): Complete source code content of the Java file
+
+        Returns:
+            List[Class]: List of Class objects representing all top-level and
+                        nested classes, interfaces, enums, records, and annotations
+                        found in the source file
+
+        Raises:
+            Exception: If ANTLR4 parsing fails due to invalid grammar or
+                      other critical errors
+
+        Examples:
+            # Parse a single Java file
+            with open("User.java", "r") as f:
+                content = f.read()
+            classes = parser.parse_file(Path("User.java"), content)
+
+            # Handle parse errors
+            if parser.error_listener.errors:
+                for error in parser.error_listener.errors:
+                    logger.warning(f"Parse error: {error}")
+        """
         try:
             # Create ANTLR input stream
             input_stream = InputStream(content)
-
-            # Create lexer
-            logger.debug(f"Lexing the source code for {file_path}")
             lexer = JavaLexer(input_stream)
             lexer.removeErrorListeners()
             lexer.addErrorListener(self.error_listener)
@@ -39,13 +87,13 @@ class SourceParser:
             stream = CommonTokenStream(lexer)
 
             # Create parser
-            logger.debug(f"Parsing the token stream for {file_path}")
             parser = JavaParser(stream)
+            parser.removeErrorListeners()
+            parser.addErrorListener(self.error_listener)
             parser.removeErrorListeners()
             parser.addErrorListener(self.error_listener)
 
             # Parse the compilation unit
-            logger.debug(f"Generating a parser walk tree for {file_path}")
             tree = parser.compilationUnit()
 
             if self.error_listener.errors:
@@ -55,7 +103,6 @@ class SourceParser:
             # Create listener and walk the parse tree
             listener = APIExtractorListener(str(file_path), content)
             walker = ParseTreeWalker()
-            logger.debug(f"Walking the parse tree for {file_path}")
             walker.walk(listener, tree)
 
             return listener.classes
