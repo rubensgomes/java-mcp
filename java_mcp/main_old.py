@@ -1,52 +1,5 @@
-"""
-main.py
--------
-Main module for starting and stopping the MCP GitHub server.
 
-This module provides the entry point functions for managing the MCP server lifecycle,
-including starting the server with repository indexing and gracefully stopping it.
 
-Functions:
-    start_server(repo_paths: List[str], name: str = "java-mcp-server", host: str = "localhost", port: int = 8000) -> MCPGitHubServer:
-        Start the MCP Java Git server with the specified configuration.
-
-    stop_server(server: MCPGitHubServer) -> None:
-        Stop the running MCP GitHub server.
-
-Usage:
-    from ghmcp.main import start_server, stop_server
-
-    # Start the server
-    server = start_server(['/path/to/repo1', '/path/to/repo2'])
-
-    # Stop the server
-    stop_server(server)
-"""
-
-import argparse
-import asyncio
-import signal
-import sys
-from typing import List, Optional
-from java_mcp.server import MCPServer, run_stdio_server
-import logging
-import os
-
-from java_mcp.utility import configure_logging
-
-# At the top of your file, after imports
-DEFAULT_SERVER_NAME = "java-mcp-server"
-DEFAULT_HOST = "localhost"
-DEFAULT_PORT = 8000
-DEFAULT_FOLDER_PATH = os.getcwd()
-MAX_RETRIES = 3
-TIMEOUT_SECONDS = 30
-
-# Initialize logger after configuration
-logger = logging.getLogger(__name__)
-
-# Global server instance for signal handling
-_server_instance: Optional[MCPServer] = None
 
 def start_server(repo_urls: List[str],
                  folder_path: str = DEFAULT_FOLDER_PATH,
@@ -114,69 +67,16 @@ def start_server(repo_urls: List[str],
         logger.debug(f"Server startup error details:", exc_info=True)
         raise RuntimeError(f"Server startup failed: {e}") from e
 
-def stop_server(server: MCPGitHubServer) -> None:
-    """
-    Stop the running MCP GitHub server.
-
-    Gracefully shuts down the provided MCPGitHubServer instance, cleaning up
-    resources and ensuring a proper shutdown sequence.
-
-    Args:
-        server (MCPGitHubServer): The server instance to stop.
-
-    Example:
-        server = start_server(['/path/to/repo'])
-        # ... server operations ...
-        stop_server(server)
-    """
-    global _server_instance
-
-    if server is None:
-        logger.warning("Attempted to stop a None server instance")
-        return
-
-    try:
-        logger.info(f"Stopping MCP GitHub server...")
-        logger.debug(f"Stopping server with name: {getattr(server, 'name', 'unknown')}")
-
-        # Clear global reference
-        if _server_instance == server:
-            _server_instance = None
-
-        # Note: The actual server shutdown would depend on the MCP SDK's server implementation
-        # For now, we'll log the shutdown and clear references
-        logger.info("MCP GitHub server stopped successfully")
-
-    except Exception as e:
-        logger.error(f"Error stopping server: {e}")
-        logger.debug("Server stop error details:", exc_info=True)
-        raise
-
-def _signal_handler(signum: int, frame) -> None:
-    """
-    Handle system signals for graceful shutdown.
-
-    Args:
-        signum (int): The signal number received.
-        frame: The current stack frame.
-    """
-    logger.info(f"Received signal {signum}, shutting down gracefully...")
-    logger.debug(f"Signal handler called with signum={signum}")
-
-    if _server_instance:
-        stop_server(_server_instance)
-
-    sys.exit(0)
 
 def parse_arguments() -> argparse.Namespace:
     """
-    Parse command line arguments for the MCP GitHub server.
+    Parse command line arguments for the MCP server.
 
     Returns:
         argparse.Namespace: Parsed command line arguments
     """
     parser = argparse.ArgumentParser(
-        description="MCP GitHub Server - Index and serve Git repositories via MCP protocol",
+        description="MCP Git Server - Index and serve Git repositories via MCP protocol",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
